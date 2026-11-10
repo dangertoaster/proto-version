@@ -1,6 +1,6 @@
 [package]
 name = "proto-parts"
-version = "0.1.0"  # Hand-maintained; must match the git tag at release (checked in CI).
+version = "0.2.0-dev"  # Hand-maintained; must match the git tag at release (checked in CI).
 edition = "2024"
 
 [dependencies]
