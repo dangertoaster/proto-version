@@ -1,0 +1,12 @@
+[build-system]
+requires = ["maturin~=1.12"]
+build-backend = "maturin"
+
+[project]
+name = "proto-parts"
+dynamic = ["version"]
+requires-python = ">=3.10"
+
+[tool.maturin]
+module-name = "proto_parts._rs"
+python-source = "."
