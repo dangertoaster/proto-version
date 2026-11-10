@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+
+jobs:
+  check-version:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert tag matches Cargo.toml version
+        run: python3 tools/check_version.py
+
+  build:
+    needs: [check-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # Stand-in for the real PyPI/GitHub publishing jobs: verifies the version
+  # that WOULD be published and stops there.
+  confirm:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Confirm version consistency (no publish)
+        run: |
+          set -eux
+          pip install dist/*.whl
+          python - <<'PY'
+          import importlib.metadata
+          import proto_parts
+
+          metadata_version = importlib.metadata.version("proto-parts")
+          runtime_version = proto_parts.__version__
+          tag = "${{ github.ref_name }}"
+
+          assert metadata_version == tag, (metadata_version, tag)
+          assert runtime_version == tag, (runtime_version, tag)
+          print(f"OK: tag, wheel metadata, and __version__ all agree on {tag}")
+          PY
